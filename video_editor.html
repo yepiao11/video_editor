@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            #box1{
+                width: 500px;
+        height: auto;
+
+            }
+            video {
+        width: 500px;
+        height: 500px;
+}
+
+#canvas1{
+    width:auto;
+    height:auto;
+
+}
+#start_look{
+    float:right;
+    /* top:100px;
+    display: block; */
+}
+#progressBar {
+    float:left;
+    width: 80%;
+    height: 10px;
+    background-color: #ccc;
+    position: relative;
+  }
+
+  #progress {
+    /* width: 80%; */
+    height: 10px;
+    background-color: #00a0e9;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0%;
+  }
+  #time {
+	/* margin-left: 10px; */
+	font-size: 14px;
+    float:right;
+
+}
+
+   .video-video{
+    position: relative;
+
+   }
+  .subtitle {
+    width: 200px;
+    height: auto;
+    
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+#addTexting{
+    display: none;
+    background-color: #333;
+    position: absolute;
+  top: calc(50% - 30px);
+  left: 40%;
+  transform: translate(-50%, -50%);
+    
+}
+#addTexting input[type="text"] {
+  
+  /* font-size: 12px; */
+  padding: 5px;
+}
+#addTexting .submitButton {
+  position: absolute;
+  top: calc(50% + 30px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  padding: 5px 10px;
+  color: red;
+  border: none;
+  cursor: pointer;
+}
+
+.editable {
+        display: inline-block;
+        padding: 5px;
+      }
+.editable input[type=text] {
+    /* display: none; */
+    display : inline-block;
+    margin-left: 5px;
+}
+.editable select {
+    margin-left: 5px;
+}
+.image-overlay {
+    position: absolute;
+    z-index: 1;
+    top: 20%;
+    left: 50%;
+
+}
+
+        </style>
+
+    </head>
+    <body>
+        <div id="box1">
+            <form>
+                <!-- 选择文件 -->
+                <input type="file" id="video-file" accept="video/*">  
+              </form>
+              <div id="video-container">
+                <div class="video-video">
+                    <video id="video-player" controls></video> 
+                    <div id="subtitle" class="subtitle"></div>
+                    
+                   
+                    <p id="addTexting" class="editable">
+                        <input type="text" id="subtitleInput" contenteditable="true">
+                        <select id="colorSelect">
+                            <option value="white">白色</option>
+                            <option value="red">红色</option>
+                            <option value="green">绿色</option>
+                            <option value="blue">蓝色</option>
+                          </select>
+                          <label for="sizeSelect"></label>
+                          <select id="sizeSelect">
+                            <option value="16px">16</option>
+                            <option value="20px">20</option>
+                            <option value="24px">24</option>
+                            <option value="28px">28</option>
+                          </select>
+                    <button id='submitButton' class='submitButton' type="button">确认</button>
+                        </p>
+                </div>
+                <button id="play-button">播放/暂停</button>
+                <span id="videoInfo_duration"></span>
+                <canvas id="canvas1" width=auto height=auto></canvas>
+                <button id="start_look">从头预览</button>
+                <div id="progressBar">
+                    <div id="progress"></div>
+                </div>
+                <div id="time">time</div>
+                
+                <div>
+                    <button id="addTextStart">开始添加字幕</button>
+                <button id="addTextEnd">暂停添加字幕</button>
+                </div>
+                <br/>
+                <br/>
+                <!-- 贴图操作 -->
+                <label for="imageFile">选择要添加的图像文件：</label>
+                <input type="file" id="imageFile">
+                <br>
+                <label for="startTime">设置贴图开始时间：</label>
+                <input type="text" id="startTime" value="00:00:00">
+                <br>
+                <label for="endTime">设置贴图结束时间：</label>
+                <input type="text" id="endTime" value="00:00:05">
+                <br>
+                <button id="addImage">添加贴图</button>
+                <div>
+                    <button id="exportVideo">导出视频</button>
+                </div>
+
+              </div>
+
+        </div>
+        <script>
+            const videoFileInput = document.getElementById('video-file');  //选择视频 的标签
+                const video = document.getElementById('video-player'); //获取voide的标签
+                const videoInfo_duration = document.getElementById('videoInfo_duration');  //持续时间按钮
+                const progressBar = document.getElementById('progressBar');  //进度条
+                const time = document.getElementById('time');
+                const exportVideo=document.getElementById('exportVideo')
+                //支持导出视频
+                exportVideo.addEventListener('click',function(){
+                    let res=confirm('视频制作完成,确定导出嘛')
+                    if(res){
+                        alert('导出成功')
+                    }
+                })
+                //实现拖动进度条，视频也随之播放的功能
+                progressBar.addEventListener('click', seek);  
+                function seek(e) {
+                    const percent = e.offsetX / progressBar.offsetWidth;
+                    video.currentTime = percent * video.duration;
+                    updateProgressBar();
+                }
+
+                //实现从头预览功能
+                const start_look=document.getElementById('start_look')
+                start_look.addEventListener('click',()=>{
+                    video.load();  //加载视频
+                    video.play();    //播放视频
+                })
+                
+                //实现加载视频并显示视频时常
+                videoFileInput.addEventListener('change', () => {
+                    const videoFile = videoFileInput.files[0];
+                    const videoUrl = URL.createObjectURL(videoFile);
+                    video.src = videoUrl;
+                    video.load();  //加载视频
+                    video.play();    //播放视频
+                    // // 将视频总时长显示在页面上
+                    video.addEventListener('loadedmetadata', function() {
+                        const duration = video.duration;
+                        videoInfo_duration.innerHTML = `视频总时长：${duration.toFixed(2)}秒`;
+                    });
+                });
+
+                //实现进度条和画布加载
+                const progress = document.getElementById('progress');
+                const canvas1 = document.getElementById('canvas1');
+                const ctx1 = canvas1.getContext('2d');
+                video.addEventListener('timeupdate', () => {
+                    const currentTime = video.currentTime;
+                    const duration = video.duration;
+                    //进度条
+                    const progressPercentage = (currentTime / duration) * 100;
+                    progress.style.width = `${progressPercentage}%`;
+                    //实现时间功能
+                    const timeString = `${Math.floor(video.currentTime / 60)}:${Math.floor(video.currentTime % 60).toString().padStart(2, '0')} / ${Math.floor(video.duration / 60)}:${Math.floor(video.duration % 60).toString().padStart(2, '0')}`;
+	                time.textContent = timeString;
+                    //画布加载
+                    ctx1.drawImage(video, 0, 0, canvas1.width, canvas1.height);
+
+                });
+
+                // 控制视频播放/暂停的代码
+                const playButton = document.getElementById('play-button');
+                playButton.addEventListener('click', () => {
+                    if (video.paused) {
+                        video.play();
+                    } else {
+                        video.pause();
+                    }
+                });
+
+
+                 //实现添加文字字幕
+                 const subtitle = document.getElementById('subtitle');     //存放字幕内容
+                const addTextStart=document.getElementById('addTextStart')  //设置字幕开始时间
+                const addTextEnd=document.getElementById('addTextEnd')    //设置字幕结束时间
+                const addTexting=document.getElementById('addTexting')   //添加字幕时显示，添加完成隐藏
+                const subtitleInput = document.getElementById("subtitleInput"); //编辑文字框
+                const submitButton = document.getElementById("submitButton");  //编辑文字的确认按钮
+
+                // 获取下拉框元素
+                var colorSelect = document.getElementById("colorSelect");
+                var sizeSelect = document.getElementById("sizeSelect");
+    
+                //编辑和设置字幕
+                let cues = [
+                { startTime: 0, endTime: 2, text: 'This is the first subtitle.' },
+                { startTime: 10, endTime: 15, text: 'This is the second subtitle.' }
+                ];
+                let flag=false   //是否正在设置字幕
+                addTextStart.addEventListener('click',()=>{
+                    video.pause()  //设置字幕视频暂停
+                    let startTime=video.currentTime    //保存字幕开始时间 
+                    addTexting.style.display='block'   //显示编辑框
+                    let text
+                    //尝试加入内容
+                    // console.log(colorSelect.value)
+                    // console.log(sizeSelect.value)
+                    // subtitleInput.style.display = "none";
+                     //选择字体大小
+                    sizeSelect.addEventListener("change", function() {
+                        var selectedSize = sizeSelect.options[sizeSelect.selectedIndex].value;
+                        subtitleInput.style.fontSize = selectedSize + "px";
+                        // console.log(selectedSize)
+                        subtitle.innerHTML=subtitleInput.value
+                        subtitle.style.fontSize = selectedSize + "px";
+                    });
+                    //选择颜色
+                    colorSelect.addEventListener("change", function() {
+                        var selectedColor = colorSelect.options[colorSelect.selectedIndex].value;
+                        subtitleInput.style.color = selectedColor;
+                        subtitle.innerHTML=subtitleInput.value
+                        subtitle.style.color = selectedColor;
+                    });
+
+                    submitButton.addEventListener('click',()=>{   //字幕编辑确认
+                        var newSubtitle = subtitleInput.value;   //保存字幕
+                        text=newSubtitle      
+                        flag=true //表示正在设置字幕
+                        subtitle.innerHTML=text    //将页面内容设置为字幕文字
+                        video.play()       //视频播放
+                        subtitleInput.value=''    
+                        addTexting.style.display='none'   ////隐藏编辑框
+                    })
+                    
+                    addTextEnd.addEventListener('click',()=>{
+                        let endTime=video.currentTime  //保存字幕结束时间
+                        let obj={}
+                        obj.startTime=startTime    
+                        obj.endTime=endTime
+                        obj.text=text
+                        cues.unshift(obj)   //将对象存入数组
+                        flag=false  //设置字幕结束
+                    })
+
+                })
+
+                //在满足的时间里显示字幕
+                video.addEventListener('timeupdate', function() {
+                for (let i = 0; i < cues.length; i++) {
+                    if (video.currentTime >= cues[i].startTime && video.currentTime <= cues[i].endTime) {
+                    subtitle.innerHTML = cues[i].text;
+                    break;
+                    } else{
+                        if(!flag){
+                            subtitle.innerHTML=''
+                        }
+                    }
+                }
+                });
+
+                //实现字幕拖拽功能，用户可编辑字幕的位置的功能
+                // 添加鼠标按下事件监听器
+                subtitle.addEventListener("mousedown", function(event) {
+                // 将可拖拽元素的 draggable 属性设置为 true，开始拖拽
+                subtitle.setAttribute("draggable", "true");
+                });
+                // 添加拖拽开始事件监听器
+                subtitle.addEventListener("dragstart", function(event) {
+                // 设置被拖拽的数据
+                console.log('89')
+                event.dataTransfer.setData("text/plain", event.target.textContent);
+                 // 添加鼠标移动事件监听器
+                 document.addEventListener("mousemove", dragSubtitle);
+                // 添加拖拽结束事件监听器
+                document.addEventListener("mouseup",removeDragSubtitle );
+                });
+
+                function dragSubtitle(event) {
+                    console.log('event')
+                // 判断是否正在拖拽
+                if (subtitle.getAttribute("draggable") == "true") {
+                    // 获取鼠标的位置
+                    var x = event.clientX;
+                    var y = event.clientY; 
+                    // 将可拖拽元素的位置设置为鼠标的位置
+                    subtitle.style.position = "absolute";
+                    subtitle.style.left = x + "px";
+                    subtitle.style.top = y + "px";
+                }
+                }
+
+                function removeDragSubtitle(event) {
+                // 将可拖拽元素的 draggable 属性设置为 false，停止拖拽
+                subtitle.setAttribute("draggable", "false");
+                //移除document身上的mousemove 和 mouseup操作
+                document.removeEventListener('mousemove',dragSubtitle)
+                document.removeEventListener('mouseup',removeDragSubtitle)
+                }
+
+                //实现贴图功能
+                // 获取图像文件输入元素
+                var imageFile = document.getElementById("imageFile");
+
+                // 获取文本输入元素和按钮元素
+                var startTimeInput = document.getElementById("startTime");
+                var endTimeInput = document.getElementById("endTime");
+                var addImageButton = document.getElementById("addImage");
+
+                imageFile.addEventListener('click',function(){
+                    // video.pause()
+                    console.log('8888')
+                    video.pause()
+                    console.log(video.pause)
+                    
+                })
+                // 当图像文件选择时，预览图像
+                imageFile.addEventListener("change", function() {
+                    
+                    var file = this.files[0];
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var img = document.createElement("img");
+                        img.src = e.target.result;
+                        img.classList.add("image-overlay");
+                        video.parentNode.insertBefore(img, video);
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                // 当按钮点击时，添加贴图
+                addImageButton.addEventListener("click", function() {
+                    
+                    video.play()
+                var img = document.querySelector(".image-overlay");
+                if (img) {
+                    var startTime = convertToSeconds(startTimeInput.value);
+                    var endTime = convertToSeconds(endTimeInput.value);
+                    console.log(startTime)
+                    console.log(endTime)
+                    var duration = video.duration;
+                    console.log(duration)
+                    if (startTime >= 0 && startTime <= duration && endTime >= startTime && endTime <= duration) {
+                        console.log('89899')
+                    img.style.display = "none";
+                    video.addEventListener("timeupdate", function handler() {
+                        if (this.currentTime >= startTime && this.currentTime <= endTime) {
+                        img.style.display = "block";
+                        } else {
+                        img.style.display = "none";
+                        }
+                    });
+                    } else {
+                    alert("开始时间和结束时间必须在视频的范围内，并且结束时间必须在开始时间之后。");
+                    }
+                } else {
+                    alert("请先选择要添加的图像文件。");
+                }
+                if (img){
+                    //实现字幕拖拽功能，用户可编辑字幕的位置的功能
+                // 添加鼠标按下事件监听器
+                img.addEventListener("mousedown", function(event) {
+                // 将可拖拽元素的 draggable 属性设置为 true，开始拖拽
+                img.setAttribute("draggable", "true");
+                });
+                // 添加拖拽开始事件监听器
+                img.addEventListener("dragstart", function(event) {
+                // 设置被拖拽的数据
+                console.log('开始拖拽图片')
+                event.dataTransfer.setData("text/plain", event.target.textContent);
+                 // 添加鼠标移动事件监听器
+                 document.addEventListener("mousemove", dragSubtitle);
+                // 添加拖拽结束事件监听器
+                document.addEventListener("mouseup",removeDragSubtitle );
+                });
+
+                function dragSubtitle(event) {
+                    console.log('event')
+                // 判断是否正在拖拽
+                if (img.getAttribute("draggable") == "true") {
+                    // 获取鼠标的位置
+                    var x = event.clientX;
+                    var y = event.clientY; 
+                    // 将可拖拽元素的位置设置为鼠标的位置
+                    img.style.position = "absolute";
+                    img.style.left = x + "px";
+                    img.style.top = y + "px";
+                }
+                }
+
+                function removeDragSubtitle(event) {
+                // 将可拖拽元素的 draggable 属性设置为 false，停止拖拽
+                subtitle.setAttribute("draggable", "false");
+                //移除document身上的mousemove 和 mouseup操作
+                document.removeEventListener('mousemove',dragSubtitle)
+                document.removeEventListener('mouseup',removeDragSubtitle)
+                }
+
+                }
+
+                });
+                // 辅助函数：将格式为 "HH:MM:SS" 的时间转换为数字格式
+                function convertToSeconds(timeString) {
+                    // 将时间字符串拆分为小时、分钟和秒
+                    const [hours, minutes, seconds] = timeString.split(':');
+
+                    // 将小时、分钟和秒转换为数字并计算总秒数
+                    const totalSeconds = Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
+
+                    // 返回总秒数
+                    return totalSeconds;
+                }
+
+
+
+
+                
+
+
+        </script>
+    </body>
+</html>
